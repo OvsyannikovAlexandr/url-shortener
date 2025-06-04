@@ -14,10 +14,14 @@ import (
 
 type Handler struct {
 	Storage *storage.RedisStorage
+	BaseURL string
 }
 
-func New(storage *storage.RedisStorage) *Handler {
-	return &Handler{Storage: storage}
+func New(storage *storage.RedisStorage, baseUrl string) *Handler {
+	return &Handler{
+		Storage: storage,
+		BaseURL: baseUrl,
+	}
 }
 
 type shortenRequest struct {
@@ -47,7 +51,7 @@ func (h *Handler) Shorten(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp := shortenResponse{ShortURL: fmt.Sprintf("http://localhost:8080/%s", key)}
+	resp := shortenResponse{ShortURL: fmt.Sprintf("%s/%s", h.BaseURL, key)}
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(resp); err != nil {
 		http.Error(w, "failed to encode response", http.StatusInternalServerError)

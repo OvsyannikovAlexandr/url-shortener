@@ -23,9 +23,11 @@ func TestShortenAndRedirect(t *testing.T) {
 
 	store := storage.NewRedisStorage(redisURL)
 	// Поднимаем тестовый сервер
-	mux := handler.New(store)
-	server := httptest.NewServer(mux.Router())
+	h := handler.New(store, "")
+	server := httptest.NewServer(h.Router())
 	defer server.Close()
+
+	h.BaseURL = server.URL
 
 	// 1. Тестируем POST /shorten
 	originalURL := "https://example.com"
@@ -52,14 +54,20 @@ func TestShortenAndRedirect(t *testing.T) {
 	// 2. Тестируем GET /{short_code}
 	time.Sleep(100 * time.Millisecond) // Redis может быть чуть медленным в тесте
 
-	getResp, err := http.Get(shortURL)
+	client := &http.Client{
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse // не следовать за редиректом
+		},
+	}
+
+	getResp, err := client.Get(shortURL)
 	if err != nil {
 		t.Fatalf("GET short URL failed: %v", err)
 	}
 	defer getResp.Body.Close()
 
-	if getResp.StatusCode != http.StatusTemporaryRedirect {
-		t.Fatalf("expected 307 redirect, got %d", getResp.StatusCode)
+	if getResp.StatusCode != http.StatusMovedPermanently {
+		t.Fatalf("expected 301 redirect, got %d", getResp.StatusCode)
 	}
 
 	location := getResp.Header.Get("Location")

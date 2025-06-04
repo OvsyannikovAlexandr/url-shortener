@@ -17,7 +17,7 @@ func main() {
 		log.Fatalf("Redis не отвечает: %v", err)
 	}
 
-	h := handler.New(storage)
+	h := handler.New(storage, "")
 
 	http.HandleFunc("/shorten", h.Shorten)
 	http.HandleFunc("/", h.Redirect)
