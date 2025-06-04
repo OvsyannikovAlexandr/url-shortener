@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -48,13 +49,18 @@ func (h *Handler) Shorten(w http.ResponseWriter, r *http.Request) {
 
 	resp := shortenResponse{ShortURL: fmt.Sprintf("http://localhost:8080/%s", key)}
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(resp)
+	if err := json.NewEncoder(w).Encode(resp); err != nil {
+		http.Error(w, "failed to encode response", http.StatusInternalServerError)
+		return
+	}
 }
 
 func (h *Handler) Redirect(w http.ResponseWriter, r *http.Request) {
 	key := strings.TrimPrefix(r.URL.Path, "/")
 	if key == "" {
-		fmt.Fprintln(w, "Добро пожаловать в URL Shortener!")
+		if _, err := fmt.Fprintln(w, "Добро пожаловать в URL Shortener!"); err != nil {
+			log.Println("Ошибка при записи в ответ:", err)
+		}
 		return
 	}
 

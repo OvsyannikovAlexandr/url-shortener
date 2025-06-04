@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"io"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -16,7 +17,9 @@ import (
 
 func setupTestHandler() *Handler {
 	store := storage.NewRedisStorage("localhost:6379")
-	store.SaveURL(context.Background(), "abc123", "https://example.com", time.Minute)
+	if err := store.SaveURL(context.Background(), "abc123", "https://example.com", time.Minute); err != nil {
+		log.Fatalf("failed to set up test storage: %v", err)
+	}
 	return New(store)
 }
 
@@ -30,7 +33,11 @@ func TestShortenAndRedirect(t *testing.T) {
 	h.Shorten(w, req)
 
 	resp := w.Result()
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			t.Logf("Ошибка при закрытии тела ответа: %v", err)
+		}
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("expected status 200, got %d", resp.StatusCode)
@@ -38,7 +45,9 @@ func TestShortenAndRedirect(t *testing.T) {
 
 	var body map[string]string
 	data, _ := io.ReadAll(resp.Body)
-	json.Unmarshal(data, &body)
+	if err := json.Unmarshal(data, &body); err != nil {
+		t.Fatalf("failed to unmarshal response: %v", err)
+	}
 
 	shortURL := body["short_url"]
 	if shortURL == "" {
