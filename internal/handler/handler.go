@@ -72,3 +72,10 @@ func (h *Handler) Redirect(w http.ResponseWriter, r *http.Request) {
 
 	http.Redirect(w, r, url, http.StatusMovedPermanently)
 }
+
+func (h *Handler) Router() http.Handler {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/shorten", h.Shorten)
+	mux.HandleFunc("/", h.Redirect)
+	return mux
+}
