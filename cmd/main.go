@@ -2,28 +2,25 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"net/http"
 
-	"github.com/redis/go-redis/v9"
+	"url-shortener/internal/handler"
+	"url-shortener/internal/storage"
 )
 
-var ctx = context.Background()
-
 func main() {
-	rdb := redis.NewClient(&redis.Options{
-		Addr: "redis:6379",
-	})
+	ctx := context.Background()
+	storage := storage.NewRedisStorage("redis:6379")
 
-	// Проверим подключение
-	if err := rdb.Ping(ctx).Err(); err != nil {
-		log.Fatalf("не удалось подключиться к Redis: %v", err)
+	if err := storage.Ping(ctx); err != nil {
+		log.Fatalf("Redis не отвечает: %v", err)
 	}
 
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintln(w, "URL Shortener работает!")
-	})
+	h := handler.New(storage)
+
+	http.HandleFunc("/shorten", h.Shorten)
+	http.HandleFunc("/", h.Redirect)
 
 	log.Println("Сервер запущен на :8080")
 	log.Fatal(http.ListenAndServe(":8080", nil))
