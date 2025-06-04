@@ -72,3 +72,8 @@ task CITest {
     Invoke-Build Lint
     Invoke-Build TestWithRedis
 }
+
+task TestCoverage {
+    go test -v -coverprofile=coverage.out ./...
+    go tool cover -func=coverage.out
+}
