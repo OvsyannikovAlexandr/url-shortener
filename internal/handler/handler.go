@@ -67,10 +67,11 @@ func (h *Handler) Shorten(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) Redirect(w http.ResponseWriter, r *http.Request) {
 	key := strings.TrimPrefix(r.URL.Path, "/")
-	if key == "" {
+	if key == "" || strings.Contains(key, "/") {
 		if _, err := fmt.Fprintln(w, "Добро пожаловать в URL Shortener!"); err != nil {
 			log.Println("Ошибка при записи в ответ:", err)
 		}
+
 		return
 	}
 
@@ -90,8 +91,8 @@ func (h *Handler) Redirect(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) Router() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/shorten", h.Shorten)
-	mux.HandleFunc("/", h.Redirect)
 	mux.HandleFunc("/stats/", h.Stats)
+	mux.HandleFunc("/", h.Redirect)
 	return mux
 }
 
@@ -144,7 +145,7 @@ func (h *Handler) ShortenHTML(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	shortURL := "http://localhost:8080/r/" + key
+	shortURL := "http://localhost:8080/" + key
 	data := map[string]any{"ShortURL": shortURL}
 	if err := template.Must(template.ParseFiles(
 		"templates/layout.html",
