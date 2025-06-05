@@ -21,6 +21,7 @@ func main() {
 
 	http.HandleFunc("/shorten", h.Shorten)
 	http.HandleFunc("/", h.Redirect)
+	http.HandleFunc("/stats/", h.Stats)
 
 	log.Println("Сервер запущен на :8080")
 	log.Fatal(http.ListenAndServe(":8080", nil))

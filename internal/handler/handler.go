@@ -32,6 +32,11 @@ type shortenResponse struct {
 	ShortURL string `json:"short_url"`
 }
 
+type statsResponse struct {
+	URL    string `json:"url"`
+	Clicks int64  `json:"clicks"`
+}
+
 func (h *Handler) Shorten(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "метод не поддерживается", http.StatusMethodNotAllowed)
@@ -74,6 +79,10 @@ func (h *Handler) Redirect(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if err := h.Storage.IncrementClicks(r.Context(), key); err != nil {
+		log.Println("Ошибка при увеличении счётчика переходов:", err)
+	}
+
 	http.Redirect(w, r, url, http.StatusMovedPermanently)
 }
 
@@ -81,5 +90,35 @@ func (h *Handler) Router() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/shorten", h.Shorten)
 	mux.HandleFunc("/", h.Redirect)
+	mux.HandleFunc("/stats/", h.Stats)
 	return mux
+}
+
+func (h *Handler) Stats(w http.ResponseWriter, r *http.Request) {
+	key := strings.TrimPrefix(r.URL.Path, "/stats/")
+	if key == "" {
+		http.Error(w, "ключ не указан", http.StatusBadRequest)
+		return
+	}
+
+	url, err := h.Storage.GetURL(r.Context(), key)
+	if err != nil {
+		http.Error(w, "ссылка не найдена", http.StatusNotFound)
+		return
+	}
+
+	clicks, err := h.Storage.GetClicks(r.Context(), key)
+	if err != nil {
+		clicks = 0 // если нет значения — считаем 0
+	}
+
+	resp := statsResponse{
+		URL:    url,
+		Clicks: clicks,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(resp); err != nil {
+		http.Error(w, "ошибка ответа", http.StatusInternalServerError)
+	}
 }
