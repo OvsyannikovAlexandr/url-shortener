@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"fmt"
+	"html/template"
 	"log"
 	"net/http"
 	"strings"
@@ -121,4 +122,35 @@ func (h *Handler) Stats(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewEncoder(w).Encode(resp); err != nil {
 		http.Error(w, "ошибка ответа", http.StatusInternalServerError)
 	}
+}
+
+func (h *Handler) ShortenHTML(w http.ResponseWriter, r *http.Request) {
+
+	if r.Method != http.MethodPost {
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
+	}
+
+	url := r.FormValue("url")
+	if url == "" {
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
+	}
+
+	key := service.GenerateShortKey(6)
+	err := h.Storage.SaveURL(r.Context(), key, url, 7*24*time.Hour)
+	if err != nil {
+		http.Error(w, "ошибка сохранения", http.StatusInternalServerError)
+		return
+	}
+
+	shortURL := "http://localhost:8080/r/" + key
+	data := map[string]any{"ShortURL": shortURL}
+	if err := template.Must(template.ParseFiles(
+		"templates/layout.html",
+		"templates/index.html",
+	)).ExecuteTemplate(w, "layout.html", data); err != nil {
+		http.Error(w, "ошибка шаблона", http.StatusInternalServerError)
+	}
+
 }

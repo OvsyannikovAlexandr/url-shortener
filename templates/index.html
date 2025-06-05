@@ -1,0 +1,13 @@
+{{ define "content" }}
+<h2>Сократить ссылку</h2>
+<form method="POST" action="/shorten">
+  <input type="text" name="url" placeholder="https://example.com" required />
+  <button type="submit">Сократить</button>
+</form>
+
+{{ if .ShortURL }}
+<div class="result">
+  Ваша короткая ссылка: <a href="{{ .ShortURL }}" target="_blank">{{ .ShortURL }}</a>
+</div>
+{{ end }}
+{{ end }}

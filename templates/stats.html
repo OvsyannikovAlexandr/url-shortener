@@ -1,0 +1,19 @@
+{{ define "content" }}
+<h2>Проверить статистику</h2>
+<form method="GET" action="/stats">
+  <input type="text" name="key" placeholder="Ключ короткой ссылки" required />
+  <button type="submit">Показать</button>
+</form>
+
+{{ if .Clicks }}
+<div class="result">
+  Количество переходов: {{ .Clicks }}
+</div>
+{{ end }}
+
+{{ if .Error }}
+<div class="result" style="color:red;">
+  {{ .Error }}
+</div>
+{{ end }}
+{{ end }}
