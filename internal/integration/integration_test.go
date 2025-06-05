@@ -38,7 +38,11 @@ func TestShortenAndRedirect(t *testing.T) {
 	if err != nil {
 		t.Fatalf("POST /shorten failed: %v", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			t.Logf("Ошибка при закрытии тела ответа: %v", err)
+		}
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("expected 200 OK, got %d", resp.StatusCode)
@@ -64,7 +68,12 @@ func TestShortenAndRedirect(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GET short URL failed: %v", err)
 	}
-	defer getResp.Body.Close()
+	// defer getResp.Body.Close()
+	defer func() {
+		if err := getResp.Body.Close(); err != nil {
+			t.Logf("Ошибка при закрытии: %v", err)
+		}
+	}()
 
 	if getResp.StatusCode != http.StatusMovedPermanently {
 		t.Fatalf("expected 301 redirect, got %d", getResp.StatusCode)
