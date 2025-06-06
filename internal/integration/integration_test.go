@@ -23,7 +23,7 @@ func TestShortenAndRedirect(t *testing.T) {
 
 	store := storage.NewRedisStorage(redisURL)
 	// Поднимаем тестовый сервер
-	h := handler.New(store, "")
+	h := handler.New(store, "", nil)
 	server := httptest.NewServer(h.Router())
 	defer server.Close()
 

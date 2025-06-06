@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"html/template"
@@ -14,14 +15,16 @@ import (
 )
 
 type Handler struct {
-	Storage *storage.RedisStorage
-	BaseURL string
+	Storage   *storage.RedisStorage
+	BaseURL   string
+	Templates *template.Template
 }
 
-func New(storage *storage.RedisStorage, baseUrl string) *Handler {
+func New(storage *storage.RedisStorage, baseUrl string, tmpl *template.Template) *Handler {
 	return &Handler{
-		Storage: storage,
-		BaseURL: baseUrl,
+		Storage:   storage,
+		BaseURL:   baseUrl,
+		Templates: tmpl,
 	}
 }
 
@@ -154,4 +157,31 @@ func (h *Handler) ShortenHTML(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "ошибка шаблона", http.StatusInternalServerError)
 	}
 
+}
+
+func (h *Handler) ShowStats(w http.ResponseWriter, r *http.Request) {
+	key := r.URL.Query().Get("key")
+	data := make(map[string]any)
+
+	if key != "" {
+		clicks, err := h.Storage.GetClicks(context.Background(), key)
+		if err != nil {
+			data["Error"] = "Ссылка не найдена или ошибка хранения"
+		} else {
+			data["Clicks"] = clicks
+		}
+	}
+
+	if err := h.Templates.ExecuteTemplate(w, "layout.html", data); err != nil {
+		http.Error(w, "ошибка шаблона", http.StatusInternalServerError)
+	}
+
+}
+func (h *Handler) ShowIndex(w http.ResponseWriter, r *http.Request) {
+	if err := template.Must(template.ParseFiles(
+		"templates/layout.html",
+		"templates/index.html",
+	)).ExecuteTemplate(w, "layout.html", nil); err != nil {
+		http.Error(w, "ошибка шаблона", http.StatusInternalServerError)
+	}
 }

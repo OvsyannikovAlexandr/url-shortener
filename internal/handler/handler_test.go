@@ -20,7 +20,7 @@ func setupTestHandler() *Handler {
 	if err := store.SaveURL(context.Background(), "abc123", "https://example.com", time.Minute); err != nil {
 		log.Fatalf("failed to set up test storage: %v", err)
 	}
-	return New(store, "")
+	return New(store, "", nil)
 }
 
 func TestShortenAndRedirect(t *testing.T) {

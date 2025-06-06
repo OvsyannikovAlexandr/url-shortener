@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"html/template"
 	"log"
 	"net/http"
@@ -15,11 +14,7 @@ var templates *template.Template
 
 func main() {
 	// Загружаем шаблоны
-	templates = template.Must(template.ParseFiles(
-		"templates/layout.html",
-		"templates/index.html",
-		"templates/stats.html",
-	))
+	templates = template.Must(template.ParseGlob("templates/*"))
 
 	// Redis
 	redisAddr := os.Getenv("REDIS_ADDR")
@@ -29,15 +24,15 @@ func main() {
 	store := storage.NewRedisStorage(redisAddr)
 
 	// Хендлеры API
-	h := handler.New(store, "https://localhost:8080")
+	h := handler.New(store, "https://localhost:8080", templates)
 
 	// Маршруты
 	http.HandleFunc("/shorten", h.ShortenHTML)
-	http.HandleFunc("/stats", showStats(store))
+	http.HandleFunc("/stats", h.ShowStats)
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		path := r.URL.Path
 		if path == "/" || path == "/index.html" {
-			showIndex(w, r)
+			h.ShowIndex(w, r)
 			return
 		}
 		h.Redirect(w, r)
@@ -47,31 +42,11 @@ func main() {
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
 
-func showIndex(w http.ResponseWriter, r *http.Request) {
-	if err := template.Must(template.ParseFiles(
-		"templates/layout.html",
-		"templates/index.html",
-	)).ExecuteTemplate(w, "layout.html", nil); err != nil {
-		http.Error(w, "ошибка шаблона", http.StatusInternalServerError)
-	}
-}
-
-func showStats(store *storage.RedisStorage) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		key := r.URL.Query().Get("key")
-		data := make(map[string]any)
-
-		if key != "" {
-			clicks, err := store.GetClicks(context.Background(), key)
-			if err != nil {
-				data["Error"] = "Ссылка не найдена или ошибка хранения"
-			} else {
-				data["Clicks"] = clicks
-			}
-		}
-
-		if err := templates.ExecuteTemplate(w, "layout.html", data); err != nil {
-			http.Error(w, "ошибка шаблона", http.StatusInternalServerError)
-		}
-	}
-}
+// func showIndex(w http.ResponseWriter, r *http.Request) {
+// 	if err := template.Must(template.ParseFiles(
+// 		"templates/layout.html",
+// 		"templates/index.html",
+// 	)).ExecuteTemplate(w, "layout.html", nil); err != nil {
+// 		http.Error(w, "ошибка шаблона", http.StatusInternalServerError)
+// 	}
+// }
